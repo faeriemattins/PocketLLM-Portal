@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+llama-cpp-python
+diskcache
+psutil
+pydantic
+huggingface_hub
+python-multipart

@@ -1,0 +1,108 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import ChatInterface from './components/ChatInterface';
+import AdminDashboard from './components/AdminDashboard';
+import CacheViewer from './components/CacheViewer';
+import { MessageSquare, Settings, LayoutDashboard, Cpu, Database } from 'lucide-react';
+import { clsx } from 'clsx';
+
+const NavLink = ({ to, icon: Icon, label }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+
+  return (
+    <Link
+      to={to}
+      className={clsx(
+        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
+        isActive
+          ? "text-white bg-white/10 shadow-lg shadow-primary/10"
+          : "text-gray-400 hover:text-white hover:bg-white/5"
+      )}
+    >
+      {isActive && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
+      )}
+      <Icon size={20} className={clsx("transition-transform duration-300 group-hover:scale-110", isActive ? "text-primary" : "text-gray-500 group-hover:text-gray-300")} />
+      <span className="font-medium z-10">{label}</span>
+    </Link>
+  );
+};
+
+const App = () => {
+  return (
+    <Router>
+      <div className="flex h-screen bg-background text-gray-100 font-sans overflow-hidden relative selection:bg-primary/30">
+        {/* Noise Overlay */}
+        <div className="absolute inset-0 bg-noise pointer-events-none z-50 opacity-20 mix-blend-overlay" />
+        {/* Background Ambient Glow */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] pointer-events-none opacity-50" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-accent/20 rounded-full blur-[120px] pointer-events-none opacity-50" />
+
+        {/* Sidebar */}
+        <aside className="w-72 glass border-r-0 z-20 flex flex-col relative">
+          <div className="p-8 pb-4">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+                <Cpu className="text-white" size={24} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400 tracking-tight">
+                  PocketLLM
+                </h1>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Local Inference</p>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex-1 px-4 space-y-2 mt-6">
+            <NavLink to="/" icon={MessageSquare} label="Chat" />
+            <NavLink to="/admin" icon={LayoutDashboard} label="Dashboard" />
+            <NavLink to="/cache" icon={Database} label="Cache" />
+          </nav>
+
+          <div className="p-4 m-4 rounded-2xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-white/5 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-500 animate-ping opacity-75"></div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-300">System Online</p>
+                <p className="text-[10px] text-gray-500">v1.0.0 • CPU Mode</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+          <header className="h-20 flex items-center justify-between px-8">
+            <div>
+              <h2 className="text-xl font-heading font-medium text-white/90 tracking-tight">Workspace</h2>
+              <p className="text-xs text-gray-500">Manage your local models and sessions</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-gray-400">
+                <Settings size={18} />
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-hidden p-6 pt-0">
+            <div className="max-w-7xl mx-auto h-full rounded-3xl overflow-hidden border border-white/5 shadow-2xl bg-black/20 backdrop-blur-sm">
+              <Routes>
+                <Route path="/" element={<ChatInterface />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/cache" element={<CacheViewer />} />
+              </Routes>
+            </div>
+          </div>
+        </main>
+      </div>
+    </Router>
+  );
+};
+
+export default App;
+
