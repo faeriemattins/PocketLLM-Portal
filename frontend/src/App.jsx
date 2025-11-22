@@ -77,7 +77,7 @@ const App = () => {
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden relative z-10">
-          <header className="h-20 flex items-center justify-between px-8">
+          <header className="h-20 flex-none flex items-center justify-between px-8 border-b border-white/5 bg-background/50 backdrop-blur-sm z-20">
             <div>
               <h2 className="text-xl font-heading font-medium text-white/90 tracking-tight">Workspace</h2>
               <p className="text-xs text-gray-500">Manage your local models and sessions</p>
@@ -89,8 +89,8 @@ const App = () => {
             </div>
           </header>
 
-          <div className="flex-1 overflow-hidden p-6 pt-0">
-            <div className="max-w-7xl mx-auto h-full rounded-3xl overflow-hidden border border-white/5 shadow-2xl bg-black/20 backdrop-blur-sm">
+          <div className="flex-1 min-h-0 relative">
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm">
               <Routes>
                 <Route path="/" element={<ChatInterface />} />
                 <Route path="/admin" element={<AdminDashboard />} />

@@ -9,6 +9,8 @@ import hashlib
 
 router = APIRouter()
 
+from backend import database
+
 class Message(BaseModel):
     role: str
     content: str
@@ -16,6 +18,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[Message]
     temperature: Optional[float] = 0.7
+    session_id: Optional[str] = None
 
 @router.post("/completions")
 async def chat_completions(request: ChatRequest):
@@ -24,6 +27,13 @@ async def chat_completions(request: ChatRequest):
     last_message = request.messages[-1].content
     cache_key = hashlib.md5(last_message.encode()).hexdigest()
     
+    # If session_id is provided, save the user message
+    if request.session_id:
+        # We assume the last message in request.messages is the new user message
+        # In a robust app, we might want to be more explicit, but this works for now
+        if request.messages[-1].role == "user":
+             database.add_message(request.session_id, "user", request.messages[-1].content)
+
     cached_response = cache_manager.get(cache_key)
     if cached_response:
         # If cached, we stream it back as if it were generated
@@ -31,6 +41,11 @@ async def chat_completions(request: ChatRequest):
         def cached_stream():
             yield f"data: {json.dumps({'content': cached_response, 'cached': True})}\n\n"
             yield "data: [DONE]\n\n"
+            
+            # If session_id is provided, save the cached assistant response too
+            if request.session_id:
+                database.add_message(request.session_id, "assistant", cached_response)
+                
         return StreamingResponse(cached_stream(), media_type="text/event-stream")
 
     def generate():
@@ -45,6 +60,11 @@ async def chat_completions(request: ChatRequest):
             
             # Cache the full response
             cache_manager.set(cache_key, full_response)
+            
+            # If session_id is provided, save the assistant response
+            if request.session_id:
+                database.add_message(request.session_id, "assistant", full_response)
+                
             yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"

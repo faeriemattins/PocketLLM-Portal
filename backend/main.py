@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import chat, admin
+from backend.routers import chat, admin, sessions
 import uvicorn
 from pydantic import BaseModel
 import sqlite3
 import os
+from backend.database import init_db
 
 app = FastAPI(title="PocketLLM Portal")
+
+# Initialize database
+init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,6 +22,7 @@ app.add_middleware(
 
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+app.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
 
 @app.get("/health")
 async def health_check():

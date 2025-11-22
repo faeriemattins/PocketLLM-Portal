@@ -38,4 +38,21 @@ class ModelService:
             if 'content' in delta:
                 yield delta['content']
 
+    def generate_title(self, user_message: str) -> str:
+        if not self.llm:
+            self.load_model()
+        
+        prompt = f"Generate a short, concise title (3-5 words) for a chat session that starts with this message: '{user_message}'. Do not use quotes. Title:"
+        
+        response = self.llm.create_chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=20
+        )
+        
+        title = response['choices'][0]['message']['content'].strip()
+        # Remove any surrounding quotes if the model adds them despite instructions
+        title = title.strip('"').strip("'")
+        return title
+
 model_service = ModelService()

@@ -1,17 +1,42 @@
-import axios from 'axios';
+const API_BASE = 'http://localhost:8000';
 
-const API_URL = 'http://localhost:8000';
+export const getSessions = async () => {
+    const response = await fetch(`${API_BASE}/sessions`);
+    return response.json();
+};
 
-export const api = axios.create({
-    baseURL: API_URL,
-});
+export const createSession = async (title = "New Chat") => {
+    const response = await fetch(`${API_BASE}/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+    });
+    return response.json();
+};
 
-export const chatApi = {
-    // Chat is handled via EventSource for streaming, but we might need other endpoints
+export const deleteSession = async (sessionId) => {
+    const response = await fetch(`${API_BASE}/sessions/${sessionId}`, {
+        method: 'DELETE'
+    });
+    return response.json();
+};
+
+export const getSessionMessages = async (sessionId) => {
+    const response = await fetch(`${API_BASE}/sessions/${sessionId}/messages`);
+    return response.json();
+};
+
+export const generateSessionTitle = async (sessionId, userMessage) => {
+    const response = await fetch(`${API_BASE}/sessions/${sessionId}/title`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_message: userMessage })
+    });
+    return response.json();
 };
 
 export const adminApi = {
-    getSystemStats: () => api.get('/admin/system-stats'),
-    getCacheStats: () => api.get('/admin/cache-stats'),
-    clearCache: () => api.post('/admin/clear-cache'),
+    getSystemStats: () => fetch(`${API_BASE}/admin/system-stats`).then(res => res.json().then(data => ({ data }))),
+    getCacheStats: () => fetch(`${API_BASE}/admin/cache-stats`).then(res => res.json().then(data => ({ data }))),
+    clearCache: () => fetch(`${API_BASE}/admin/clear-cache`, { method: 'POST' }).then(res => res.json())
 };
