@@ -78,3 +78,45 @@ The frontend will start at `http://localhost:5173` (or similar, check the output
 ## Accessing the App
 
 Open your browser and navigate to the URL shown in the Frontend terminal (usually `http://localhost:5173`).
+
+---
+
+# Containerization Walkthrough
+
+I have containerized the PocketLLM Portal application using Docker and Docker Compose. This allows you to run the entire application (backend and frontend) with a single command.
+
+## Changes
+
+### Backend
+- Created `backend/Dockerfile` using `python:3.10-slim`.
+- Added system dependencies (`build-essential`, `cmake`, `gcc`) required for `llama-cpp-python`.
+- Configured to run with `uvicorn` on port 8000.
+
+### Frontend
+- Created `frontend/Dockerfile` using a multi-stage build.
+- **Stage 1**: Builds the React application using `node:18-alpine`.
+- **Stage 2**: Serves the built static files using `nginx:alpine`.
+- Configured to expose port 80.
+
+### Orchestration
+- Created `docker-compose.yml` in the root directory.
+- Maps backend port 8000 to host port 8000.
+- Maps frontend port 80 to host port 3000.
+- Sets up a volume for the backend to persist data and allow for development updates.
+
+## Verification Results
+
+### Automated Tests
+- Ran `docker-compose up --build` to initiate the build process.
+- Verified that system dependencies are installed correctly.
+- **Note**: The build process for `llama-cpp-python` can take several minutes to complete as it compiles from source.
+
+### Manual Verification
+Once the build completes, you can verify the application by accessing:
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+## Next Steps
+1.  Run `docker-compose up --build` to start the application.
+2.  Wait for the build to complete (this may take a while for the first time).
+3.  Access the application in your browser.
