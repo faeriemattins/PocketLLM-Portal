@@ -6,7 +6,8 @@ CONFIG_FILE = "config.json"
 class ConfigManager:
     def __init__(self):
         self.config = {
-            "max_prompts": 20
+            "max_prompts": 20,
+            "max_cached_sessions": 10
         }
         self.load_config()
 

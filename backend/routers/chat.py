@@ -23,10 +23,12 @@ class ChatRequest(BaseModel):
 
 @router.post("/completions")
 async def chat_completions(request: ChatRequest):
-    # Simple caching strategy: hash the last user message content
-    # In a real app, you'd hash the entire conversation history
+    # Create session-based cache key
     last_message = request.messages[-1].content
-    cache_key = hashlib.md5(last_message.encode()).hexdigest()
+    if request.session_id:
+        cache_key = f"{request.session_id}:{hashlib.md5(last_message.encode()).hexdigest()}"
+    else:
+        cache_key = hashlib.md5(last_message.encode()).hexdigest()
     
     # Check session limit
     if request.session_id:
@@ -41,8 +43,11 @@ async def chat_completions(request: ChatRequest):
         if request.messages[-1].role == "user":
              database.add_message(request.session_id, "user", request.messages[-1].content)
 
+    # Check cache
     cached_response = cache_manager.get(cache_key)
     if cached_response:
+        if request.session_id:
+            cache_manager.track_session_cache(request.session_id)
         # If cached, we stream it back as if it were generated
         # For simplicity in this demo, we'll just yield it in one go or chunks
         def cached_stream():
@@ -65,8 +70,13 @@ async def chat_completions(request: ChatRequest):
                 full_response += chunk
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
             
-            # Cache the full response
+            # Cache the response and track session
             cache_manager.set(cache_key, full_response)
+            if request.session_id:
+                cache_manager.track_session_cache(request.session_id)
+                # Cleanup old sessions if needed
+                max_cached_sessions = config_manager.get("max_cached_sessions", 10)
+                cache_manager.cleanup_old_sessions(max_cached_sessions)
             
             # If session_id is provided, save the assistant response
             if request.session_id:

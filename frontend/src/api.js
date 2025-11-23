@@ -45,6 +45,12 @@ export const adminApi = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ max_prompts })
     }).then(res => res.json()),
+    getCacheSessionConfig: () => fetch(`${API_BASE}/admin/cache-session-config`).then(res => res.json().then(data => ({ data }))),
+    setCacheSessionConfig: (max_cached_sessions) => fetch(`${API_BASE}/admin/cache-session-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max_cached_sessions })
+    }).then(res => res.json()),
     getModels: () => fetch(`${API_BASE}/admin/models`).then(res => res.json().then(data => ({ data }))),
     selectModel: (model_filename) => fetch(`${API_BASE}/admin/models/select`, {
         method: 'POST',

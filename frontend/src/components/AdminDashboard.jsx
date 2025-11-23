@@ -8,8 +8,10 @@ const AdminDashboard = () => {
     const [cacheStats, setCacheStats] = useState(null);
     const [history, setHistory] = useState([]);
     const [sessionConfig, setSessionConfig] = useState({ max_prompts: 20 });
+    const [cacheSessionConfig, setCacheSessionConfig] = useState({ max_cached_sessions: 10 });
     const [modelData, setModelData] = useState({ models: [], current_model: '' });
     const [newCacheLimit, setNewCacheLimit] = useState(20);
+    const [newCacheSessionLimit, setNewCacheSessionLimit] = useState(10);
 
     const fetchData = async () => {
         try {
@@ -38,12 +40,15 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const [configRes, modelsRes] = await Promise.all([
+                const [configRes, cacheConfigRes, modelsRes] = await Promise.all([
                     adminApi.getSessionConfig(),
+                    adminApi.getCacheSessionConfig(),
                     adminApi.getModels()
                 ]);
                 setSessionConfig(configRes.data);
                 setNewCacheLimit(configRes.data.max_prompts);
+                setCacheSessionConfig(cacheConfigRes.data);
+                setNewCacheSessionLimit(cacheConfigRes.data.max_cached_sessions);
                 setModelData(modelsRes.data);
             } catch (error) {
                 console.error("Failed to fetch config", error);
@@ -64,6 +69,17 @@ const AdminDashboard = () => {
         } catch (error) {
             console.error("Failed to update session config", error);
             alert("Failed to update session config");
+        }
+    };
+
+    const handleSaveCacheSessionConfig = async () => {
+        try {
+            await adminApi.setCacheSessionConfig(parseInt(newCacheSessionLimit));
+            setCacheSessionConfig(prev => ({ ...prev, max_cached_sessions: parseInt(newCacheSessionLimit) }));
+            alert("Cache session limit updated!");
+        } catch (error) {
+            console.error("Failed to update cache session config", error);
+            alert("Failed to update cache session config");
         }
     };
 
@@ -261,26 +277,57 @@ const AdminDashboard = () => {
 
                 <div className="glass-card p-6 rounded-2xl">
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Cpu size={18} className="text-primary" />
-                        Model Selection
+                        <Database size={18} className="text-primary" />
+                        Cache Session Limit
                     </h3>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm text-gray-400 mb-2">Active LLM Model</label>
-                            <select
-                                value={modelData.current_model}
-                                onChange={handleModelChange}
-                                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                            >
-                                {modelData.models.length === 0 && <option value="">No models found</option>}
-                                {modelData.models.map(model => (
-                                    <option key={model} value={model}>{model}</option>
-                                ))}
-                            </select>
-                            <p className="text-xs text-gray-500 mt-2">
-                                Selected model will be used for all new chat sessions.
-                            </p>
+                            <label className="block text-sm text-gray-400 mb-2">Max Cached Sessions</label>
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="20"
+                                    step="1"
+                                    value={newCacheSessionLimit}
+                                    onChange={(e) => setNewCacheSessionLimit(e.target.value)}
+                                    className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
+                                />
+                                <span className="text-white font-mono w-20 text-right">{newCacheSessionLimit} sessions</span>
+                            </div>
                         </div>
+                        <button
+                            onClick={handleSaveCacheSessionConfig}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors border border-primary/20"
+                        >
+                            <Save size={16} /> Save Configuration
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Model Selection Section */}
+            <div className="glass-card p-6 rounded-2xl">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Cpu size={18} className="text-primary" />
+                    Model Selection
+                </h3>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-2">Active LLM Model</label>
+                        <select
+                            value={modelData.current_model}
+                            onChange={handleModelChange}
+                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                        >
+                            {modelData.models.length === 0 && <option value="">No models found</option>}
+                            {modelData.models.map(model => (
+                                <option key={model} value={model}>{model}</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-2">
+                            Selected model will be used for all new chat sessions.
+                        </p>
                     </div>
                 </div>
             </div>

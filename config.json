@@ -1,3 +1,4 @@
 {
-    "max_prompts": 20
+    "max_prompts": 20,
+    "max_cached_sessions": 10
 }

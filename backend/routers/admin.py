@@ -12,6 +12,9 @@ from backend.config import config_manager
 class SessionConfig(BaseModel):
     max_prompts: int
 
+class CacheSessionConfig(BaseModel):
+    max_cached_sessions: int
+
 class ModelSelection(BaseModel):
     model_filename: str
 
@@ -41,6 +44,15 @@ def get_session_config():
 def set_session_config(config: SessionConfig):
     config_manager.set("max_prompts", config.max_prompts)
     return {"status": "Session config updated", "max_prompts": config.max_prompts}
+
+@router.get("/cache-session-config")
+def get_cache_session_config():
+    return {"max_cached_sessions": config_manager.get("max_cached_sessions", 10)}
+
+@router.post("/cache-session-config")
+def set_cache_session_config(config: CacheSessionConfig):
+    config_manager.set("max_cached_sessions", config.max_cached_sessions)
+    return {"status": "Cache session config updated", "max_cached_sessions": config.max_cached_sessions}
 
 @router.get("/models")
 def list_models():
