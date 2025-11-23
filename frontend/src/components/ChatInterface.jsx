@@ -126,14 +126,19 @@ const ChatInterface = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: [...messages, userMessage], // Note: backend might need full history or just new msg depending on logic. 
-                    // Current backend logic expects full history for context but saves only last user msg if session_id is present.
-                    // Wait, my backend logic: "We assume the last message in request.messages is the new user message".
-                    // So sending full history is correct for context, and backend picks last one to save.
+                    messages: [...messages, userMessage],
                     temperature: 0.7,
                     session_id: activeSessionId
                 })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                if (response.status === 403) {
+                    throw new Error(errorData.detail || "Limit has exceeded, open a new chat");
+                }
+                throw new Error("Failed to fetch response");
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -182,7 +187,8 @@ const ChatInterface = () => {
 
         } catch (error) {
             console.error('Error sending message:', error);
-            setMessages(prev => [...prev, { role: 'system', content: 'Error: Could not connect to the server.' }]);
+            const errorMessage = error.message || 'Error: Could not connect to the server.';
+            setMessages(prev => [...prev, { role: 'system', content: errorMessage }]);
         } finally {
             setIsLoading(false);
         }

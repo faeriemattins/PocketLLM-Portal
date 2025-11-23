@@ -7,8 +7,10 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-class CacheConfig(BaseModel):
-    size_limit_mb: int
+from backend.config import config_manager
+
+class SessionConfig(BaseModel):
+    max_prompts: int
 
 class ModelSelection(BaseModel):
     model_filename: str
@@ -31,19 +33,14 @@ def clear_cache():
     cache_manager.clear()
     return {"status": "Cache cleared"}
 
-@router.get("/cache-config")
-def get_cache_config():
-    limit = cache_manager.get_size_limit()
-    # Convert bytes to MB for frontend
-    limit_mb = int(limit / (1024 * 1024)) if limit else 0
-    return {"size_limit_mb": limit_mb}
+@router.get("/session-config")
+def get_session_config():
+    return {"max_prompts": config_manager.get("max_prompts", 20)}
 
-@router.post("/cache-config")
-def set_cache_config(config: CacheConfig):
-    # Convert MB to bytes
-    size_bytes = config.size_limit_mb * 1024 * 1024
-    cache_manager.set_size_limit(size_bytes)
-    return {"status": "Cache size limit updated", "size_limit_mb": config.size_limit_mb}
+@router.post("/session-config")
+def set_session_config(config: SessionConfig):
+    config_manager.set("max_prompts", config.max_prompts)
+    return {"status": "Session config updated", "max_prompts": config.max_prompts}
 
 @router.get("/models")
 def list_models():

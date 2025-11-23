@@ -10,6 +10,7 @@ import hashlib
 router = APIRouter()
 
 from backend import database
+from backend.config import config_manager
 
 class Message(BaseModel):
     role: str
@@ -27,8 +28,14 @@ async def chat_completions(request: ChatRequest):
     last_message = request.messages[-1].content
     cache_key = hashlib.md5(last_message.encode()).hexdigest()
     
-    # If session_id is provided, save the user message
+    # Check session limit
     if request.session_id:
+        max_prompts = config_manager.get("max_prompts", 20)
+        messages = database.get_messages(request.session_id)
+        user_messages = [m for m in messages if m['role'] == 'user']
+        if len(user_messages) >= max_prompts:
+            raise HTTPException(status_code=403, detail="Limit has exceeded, open a new chat")
+
         # We assume the last message in request.messages is the new user message
         # In a robust app, we might want to be more explicit, but this works for now
         if request.messages[-1].role == "user":

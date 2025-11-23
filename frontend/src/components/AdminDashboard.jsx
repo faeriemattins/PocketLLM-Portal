@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { adminApi } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Activity, Database, Cpu, Trash2, RefreshCw, Zap, Server, Save } from 'lucide-react';
+import { Activity, Database, Cpu, Trash2, RefreshCw, Zap, Server, Save, MessageSquare } from 'lucide-react';
 
 const AdminDashboard = () => {
     const [systemStats, setSystemStats] = useState(null);
     const [cacheStats, setCacheStats] = useState(null);
     const [history, setHistory] = useState([]);
-    const [cacheConfig, setCacheConfig] = useState({ size_limit_mb: 0 });
+    const [sessionConfig, setSessionConfig] = useState({ max_prompts: 20 });
     const [modelData, setModelData] = useState({ models: [], current_model: '' });
-    const [newCacheLimit, setNewCacheLimit] = useState(0);
+    const [newCacheLimit, setNewCacheLimit] = useState(20);
 
     const fetchData = async () => {
         try {
@@ -39,11 +39,11 @@ const AdminDashboard = () => {
         const fetchConfig = async () => {
             try {
                 const [configRes, modelsRes] = await Promise.all([
-                    adminApi.getCacheConfig(),
+                    adminApi.getSessionConfig(),
                     adminApi.getModels()
                 ]);
-                setCacheConfig(configRes.data);
-                setNewCacheLimit(configRes.data.size_limit_mb);
+                setSessionConfig(configRes.data);
+                setNewCacheLimit(configRes.data.max_prompts);
                 setModelData(modelsRes.data);
             } catch (error) {
                 console.error("Failed to fetch config", error);
@@ -58,12 +58,12 @@ const AdminDashboard = () => {
 
     const handleSaveCacheConfig = async () => {
         try {
-            await adminApi.setCacheConfig(parseInt(newCacheLimit));
-            setCacheConfig(prev => ({ ...prev, size_limit_mb: parseInt(newCacheLimit) }));
-            alert("Cache size limit updated!");
+            await adminApi.setSessionConfig(parseInt(newCacheLimit));
+            setSessionConfig(prev => ({ ...prev, max_prompts: parseInt(newCacheLimit) }));
+            alert("Session limit updated!");
         } catch (error) {
-            console.error("Failed to update cache config", error);
-            alert("Failed to update cache config");
+            console.error("Failed to update session config", error);
+            alert("Failed to update session config");
         }
     };
 
@@ -231,23 +231,23 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="glass-card p-6 rounded-2xl">
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Database size={18} className="text-accent" />
-                        Cache Configuration
+                        <MessageSquare size={18} className="text-accent" />
+                        Session Configuration
                     </h3>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm text-gray-400 mb-2">Max Cache Size (MB)</label>
+                            <label className="block text-sm text-gray-400 mb-2">Max Prompts per Session</label>
                             <div className="flex items-center gap-4">
                                 <input
                                     type="range"
-                                    min="100"
-                                    max="10240"
-                                    step="100"
+                                    min="1"
+                                    max="100"
+                                    step="1"
                                     value={newCacheLimit}
                                     onChange={(e) => setNewCacheLimit(e.target.value)}
                                     className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-accent"
                                 />
-                                <span className="text-white font-mono w-20 text-right">{newCacheLimit} MB</span>
+                                <span className="text-white font-mono w-20 text-right">{newCacheLimit} prompts</span>
                             </div>
                         </div>
                         <button
