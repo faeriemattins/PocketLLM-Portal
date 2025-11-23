@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { adminApi } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Activity, Database, Cpu, Trash2, RefreshCw, Zap, Server } from 'lucide-react';
+import { Activity, Database, Cpu, Trash2, RefreshCw, Zap, Server, Save } from 'lucide-react';
 
 const AdminDashboard = () => {
     const [systemStats, setSystemStats] = useState(null);
     const [cacheStats, setCacheStats] = useState(null);
     const [history, setHistory] = useState([]);
+    const [cacheConfig, setCacheConfig] = useState({ size_limit_mb: 0 });
+    const [modelData, setModelData] = useState({ models: [], current_model: '' });
+    const [newCacheLimit, setNewCacheLimit] = useState(0);
 
     const fetchData = async () => {
         try {
@@ -33,10 +36,49 @@ const AdminDashboard = () => {
     };
 
     useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const [configRes, modelsRes] = await Promise.all([
+                    adminApi.getCacheConfig(),
+                    adminApi.getModels()
+                ]);
+                setCacheConfig(configRes.data);
+                setNewCacheLimit(configRes.data.size_limit_mb);
+                setModelData(modelsRes.data);
+            } catch (error) {
+                console.error("Failed to fetch config", error);
+            }
+        };
+
+        fetchConfig();
         fetchData();
         const interval = setInterval(fetchData, 2000);
         return () => clearInterval(interval);
     }, []);
+
+    const handleSaveCacheConfig = async () => {
+        try {
+            await adminApi.setCacheConfig(parseInt(newCacheLimit));
+            setCacheConfig(prev => ({ ...prev, size_limit_mb: parseInt(newCacheLimit) }));
+            alert("Cache size limit updated!");
+        } catch (error) {
+            console.error("Failed to update cache config", error);
+            alert("Failed to update cache config");
+        }
+    };
+
+    const handleModelChange = async (e) => {
+        const model = e.target.value;
+        if (!model) return;
+        try {
+            await adminApi.selectModel(model);
+            setModelData(prev => ({ ...prev, current_model: model }));
+            alert(`Model changed to ${model}`);
+        } catch (error) {
+            console.error("Failed to change model", error);
+            alert("Failed to change model");
+        }
+    };
 
     const handleClearCache = async () => {
         if (window.confirm("Are you sure you want to clear the cache?")) {
@@ -180,6 +222,64 @@ const AdminDashboard = () => {
                                 <div className="w-2 h-2 rounded-full bg-green-500" />
                                 All systems operational
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Settings Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="glass-card p-6 rounded-2xl">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <Database size={18} className="text-accent" />
+                        Cache Configuration
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm text-gray-400 mb-2">Max Cache Size (MB)</label>
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="range"
+                                    min="100"
+                                    max="10240"
+                                    step="100"
+                                    value={newCacheLimit}
+                                    onChange={(e) => setNewCacheLimit(e.target.value)}
+                                    className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-accent"
+                                />
+                                <span className="text-white font-mono w-20 text-right">{newCacheLimit} MB</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleSaveCacheConfig}
+                            className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors border border-accent/20"
+                        >
+                            <Save size={16} /> Save Configuration
+                        </button>
+                    </div>
+                </div>
+
+                <div className="glass-card p-6 rounded-2xl">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <Cpu size={18} className="text-primary" />
+                        Model Selection
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm text-gray-400 mb-2">Active LLM Model</label>
+                            <select
+                                value={modelData.current_model}
+                                onChange={handleModelChange}
+                                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                            >
+                                {modelData.models.length === 0 && <option value="">No models found</option>}
+                                {modelData.models.map(model => (
+                                    <option key={model} value={model}>{model}</option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Selected model will be used for all new chat sessions.
+                            </p>
                         </div>
                     </div>
                 </div>

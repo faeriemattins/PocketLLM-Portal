@@ -21,7 +21,14 @@ class CacheManager:
         # but we can return size and volume.
         return {
             "size_bytes": self.cache.size,
-            "count": len(self.cache)
+            "count": len(self.cache),
+            "size_limit": self.cache.size_limit
         }
+
+    def get_size_limit(self):
+        return self.cache.size_limit
+
+    def set_size_limit(self, size_bytes: int):
+        self.cache.size_limit = size_bytes
 
 cache_manager = CacheManager()

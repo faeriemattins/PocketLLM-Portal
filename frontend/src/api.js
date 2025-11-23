@@ -38,5 +38,17 @@ export const generateSessionTitle = async (sessionId, userMessage) => {
 export const adminApi = {
     getSystemStats: () => fetch(`${API_BASE}/admin/system-stats`).then(res => res.json().then(data => ({ data }))),
     getCacheStats: () => fetch(`${API_BASE}/admin/cache-stats`).then(res => res.json().then(data => ({ data }))),
-    clearCache: () => fetch(`${API_BASE}/admin/clear-cache`, { method: 'POST' }).then(res => res.json())
+    clearCache: () => fetch(`${API_BASE}/admin/clear-cache`, { method: 'POST' }).then(res => res.json()),
+    getCacheConfig: () => fetch(`${API_BASE}/admin/cache-config`).then(res => res.json().then(data => ({ data }))),
+    setCacheConfig: (size_limit_mb) => fetch(`${API_BASE}/admin/cache-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ size_limit_mb })
+    }).then(res => res.json()),
+    getModels: () => fetch(`${API_BASE}/admin/models`).then(res => res.json().then(data => ({ data }))),
+    selectModel: (model_filename) => fetch(`${API_BASE}/admin/models/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_filename })
+    }).then(res => res.json())
 };

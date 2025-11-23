@@ -2,25 +2,53 @@ import os
 from llama_cpp import Llama
 from typing import Generator
 
-MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "model.gguf")
+MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
+DEFAULT_MODEL_PATH = os.path.join(MODEL_DIR, "model.gguf")
 
 class ModelService:
     def __init__(self):
         self.llm = None
+        self.current_model_path = DEFAULT_MODEL_PATH
+        if not os.path.exists(MODEL_DIR):
+            os.makedirs(MODEL_DIR)
+
+    def list_models(self):
+        if not os.path.exists(MODEL_DIR):
+            return []
+        return [f for f in os.listdir(MODEL_DIR) if f.endswith(".gguf")]
+
+    def set_model(self, model_filename: str):
+        new_path = os.path.join(MODEL_DIR, model_filename)
+        if not os.path.exists(new_path):
+            raise FileNotFoundError(f"Model {model_filename} not found")
+        
+        self.current_model_path = new_path
+        # Reload model if it's already loaded
+        if self.llm:
+            self.load_model()
 
     def load_model(self):
-        if not os.path.exists(MODEL_PATH):
-            raise FileNotFoundError(f"Model file not found at {MODEL_PATH}. Please run download_model.py first.")
+        # If current path doesn't exist, try to find any .gguf file in models dir
+        if not os.path.exists(self.current_model_path):
+            models = self.list_models()
+            if models:
+                self.current_model_path = os.path.join(MODEL_DIR, models[0])
+            else:
+                # If still no model, check for default or raise error
+                if os.path.exists(DEFAULT_MODEL_PATH):
+                    self.current_model_path = DEFAULT_MODEL_PATH
+                else:
+                    raise FileNotFoundError(f"No models found in {MODEL_DIR}. Please run download_model.py first.")
         
         # Initialize Llama model with CPU settings
         # n_ctx=2048 is a reasonable default for small models
         self.llm = Llama(
-            model_path=MODEL_PATH,
+            model_path=self.current_model_path,
             n_ctx=2048,
             n_threads=os.cpu_count(), # Use all available cores
             verbose=True
         )
-        print("Model loaded successfully.")
+        print(f"Model loaded successfully: {os.path.basename(self.current_model_path)}")
 
     def stream_chat(self, messages: list, temperature: float = 0.7) -> Generator[str, None, None]:
         if not self.llm:
