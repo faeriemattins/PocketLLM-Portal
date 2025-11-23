@@ -6,8 +6,8 @@ CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache")
 SESSION_TRACKING_KEY = "_session_tracking"
 
 class CacheManager:
-    def __init__(self):
-        self.cache = Cache(CACHE_DIR)
+    def __init__(self, size_limit_bytes=1024*1024*1024): # Default 1GB
+        self.cache = Cache(CACHE_DIR, size_limit=size_limit_bytes)
 
     def get(self, key: str):
         return self.cache.get(key)
@@ -17,6 +17,12 @@ class CacheManager:
 
     def clear(self):
         self.cache.clear()
+
+    def set_size_limit(self, size_limit_bytes: int):
+        # diskcache allows updating size_limit dynamically
+        self.cache.size_limit = size_limit_bytes
+        # Trigger cull to enforce new limit immediately if needed
+        self.cache.cull()
 
     def stats(self):
         # diskcache doesn't have a direct 'hit_rate' metric built-in easily without tracking,
@@ -45,7 +51,8 @@ class CacheManager:
             "size_bytes": size_bytes,
             "count": count,
             "size_limit": size_limit,
-            "cached_sessions": cached_sessions_count
+            "cached_sessions": cached_sessions_count,
+            "size_limit_bytes": self.cache.size_limit
         }
 
     def get_size_limit(self):

@@ -11,6 +11,7 @@ services:
       - ./cache:/app/cache
       - ./models:/app/models
       - ./backend/db:/app/backend/db
+      - ./models:/app/models
     environment:
       - PYTHONUNBUFFERED=1
 

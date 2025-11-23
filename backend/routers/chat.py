@@ -23,21 +23,35 @@ class ChatRequest(BaseModel):
 
 @router.post("/completions")
 async def chat_completions(request: ChatRequest):
-    # Create session-based cache key
-    last_message = request.messages[-1].content
+    # Check session prompt limit if session_id provided
     if request.session_id:
-        cache_key = f"{request.session_id}:{hashlib.md5(last_message.encode()).hexdigest()}"
-    else:
-        cache_key = hashlib.md5(last_message.encode()).hexdigest()
-    
-    # Check session limit
-    if request.session_id:
-        max_prompts = config_manager.get("max_prompts", 20)
+        from backend import database
+        
+        # Get max prompts setting
+        max_prompts = database.get_setting('max_prompts_per_session')
+        max_prompts = int(max_prompts) if max_prompts else 20
+        
+        # Count existing messages in session
         messages = database.get_messages(request.session_id)
-        user_messages = [m for m in messages if m['role'] == 'user']
-        if len(user_messages) >= max_prompts:
-            raise HTTPException(status_code=403, detail="Limit has exceeded, open a new chat")
-
+        user_message_count = sum(1 for m in messages if m['role'] == 'user')
+        
+        # Check if limit exceeded
+        if user_message_count >= max_prompts:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Session has reached maximum of {max_prompts} prompts. Please start a new session."
+            )
+    
+    # Enhanced caching strategy: hash conversation + temperature + session_id
+    # This ensures per-session caching for better isolation
+    conversation_str = json.dumps([m.dict() for m in request.messages], sort_keys=True)
+    cache_payload = f"{conversation_str}-{request.temperature}"
+    if request.session_id:
+        cache_payload += f"-{request.session_id}"
+    cache_key = hashlib.md5(cache_payload.encode()).hexdigest()
+    
+    # If session_id is provided, save the user message
+    if request.session_id:
         # We assume the last message in request.messages is the new user message
         # In a robust app, we might want to be more explicit, but this works for now
         if request.messages[-1].role == "user":

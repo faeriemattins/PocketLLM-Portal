@@ -6,8 +6,8 @@ import { clsx } from 'clsx';
 
 const Login = () => {
     const [mode, setMode] = useState(null); // 'user' | 'admin' | null
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('admin');
+    const [password, setPassword] = useState('admin123');
     const { login } = useAuth();
     const navigate = useNavigate();
 

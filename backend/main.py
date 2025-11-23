@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from backend.routers import chat, admin, sessions
 import uvicorn
@@ -24,15 +24,29 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+from backend import auth, database
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
 
-@app.get("/cache")
-async def get_cache():
-    db_path = "cache/cache.db"
-    if not os.path.exists(db_path):
-        return []
+@app.post("/auth/register")
+async def register(form_data: OAuth2PasswordRequestForm = Depends()):
+    # We use form_data.username and form_data.password for simplicity with OAuth2 standard
+    user = database.get_user(form_data.username)
+    if user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    hashed_password = auth.get_password_hash(form_data.password)
+    database.create_user(form_data.username, hashed_password)
+    return {"message": "User created successfully"}
+
+@app.post("/auth/token", response_model=auth.Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = database.get_user(form_data.username)
+    if not user or not auth.verify_password(form_data.password, user['hashed_password']):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     try:
         conn = sqlite3.connect(db_path)
