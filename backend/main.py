@@ -43,9 +43,28 @@ async def get_cache():
         
         cache_data = []
         for row in rows:
+            key = row[0]
+            value = row[1]
+            
+            # Handle binary keys
+            if isinstance(key, bytes):
+                try:
+                    key = key.decode('utf-8')
+                except:
+                    key = str(key)
+            
+            # Handle binary values (likely pickled)
+            if isinstance(value, bytes):
+                try:
+                    # Try to decode as utf-8 first (in case it's just a string)
+                    value = value.decode('utf-8')
+                except:
+                    # If binary/pickled, just show representation
+                    value = f"<Binary Data: {len(value)} bytes>"
+
             cache_data.append({
-                "key": row[0],
-                "value": row[1],
+                "key": key,
+                "value": value,
                 "store_time": row[2],
                 "access_count": row[3]
             })

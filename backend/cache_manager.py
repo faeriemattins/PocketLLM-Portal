@@ -21,11 +21,31 @@ class CacheManager:
     def stats(self):
         # diskcache doesn't have a direct 'hit_rate' metric built-in easily without tracking,
         # but we can return size and volume.
+        try:
+            cached_sessions_count = len(self.get_cached_sessions())
+        except Exception:
+            cached_sessions_count = 0
+        
+        try:
+            size_bytes = int(self.cache.size)
+        except Exception:
+            size_bytes = 0
+        
+        try:
+            count = int(len(self.cache))
+        except Exception:
+            count = 0
+        
+        try:
+            size_limit = int(self.cache.size_limit)
+        except Exception:
+            size_limit = 1073741824  # Default 1GB
+        
         return {
-            "size_bytes": self.cache.size,
-            "count": len(self.cache),
-            "size_limit": self.cache.size_limit,
-            "cached_sessions": len(self.get_cached_sessions())
+            "size_bytes": size_bytes,
+            "count": count,
+            "size_limit": size_limit,
+            "cached_sessions": cached_sessions_count
         }
 
     def get_size_limit(self):
@@ -42,9 +62,14 @@ class CacheManager:
 
     def get_cached_sessions(self):
         """Get list of sessions with cached data, sorted by last access time."""
-        session_tracking = self.cache.get(SESSION_TRACKING_KEY, {})
-        # Sort by timestamp (oldest first)
-        return sorted(session_tracking.items(), key=lambda x: x[1])
+        try:
+            session_tracking = self.cache.get(SESSION_TRACKING_KEY, {})
+            if not isinstance(session_tracking, dict):
+                return []
+            # Sort by timestamp (oldest first)
+            return sorted(session_tracking.items(), key=lambda x: x[1])
+        except Exception:
+            return []
 
     def cleanup_old_sessions(self, max_sessions: int = 10):
         """Remove cache from oldest sessions if limit is exceeded."""
@@ -57,15 +82,36 @@ class CacheManager:
 
     def clear_session_cache(self, session_id: str):
         """Delete all cache entries for a specific session."""
-        # Find all keys that start with session_id
-        keys_to_delete = [key for key in self.cache if isinstance(key, str) and key.startswith(f"{session_id}:")]
-        for key in keys_to_delete:
-            del self.cache[key]
-        
-        # Remove from session tracking
-        session_tracking = self.cache.get(SESSION_TRACKING_KEY, {})
-        if session_id in session_tracking:
-            del session_tracking[session_id]
-            self.cache.set(SESSION_TRACKING_KEY, session_tracking)
+        try:
+            # Find all keys that start with session_id
+            keys_to_delete = []
+            for key in self.cache:
+                try:
+                    # Handle both string and byte keys
+                    if isinstance(key, bytes):
+                        key_str = key.decode('utf-8', errors='ignore')
+                    elif isinstance(key, str):
+                        key_str = key
+                    else:
+                        continue
+                    
+                    if key_str.startswith(f"{session_id}:"):
+                        keys_to_delete.append(key)
+                except Exception:
+                    continue
+            
+            for key in keys_to_delete:
+                try:
+                    del self.cache[key]
+                except Exception:
+                    pass
+            
+            # Remove from session tracking
+            session_tracking = self.cache.get(SESSION_TRACKING_KEY, {})
+            if session_id in session_tracking:
+                del session_tracking[session_id]
+                self.cache.set(SESSION_TRACKING_KEY, session_tracking)
+        except Exception:
+            pass
 
 cache_manager = CacheManager()

@@ -255,7 +255,7 @@ const ChatInterface = () => {
                             </div>
                             <h3 className="text-3xl font-heading font-bold text-white mb-3 tracking-tight">How can I help you today?</h3>
                             <p className="text-gray-400 max-w-md text-lg font-light leading-relaxed">
-                                I'm running locally on your CPU. Ask me anything about code, writing, or analysis.
+                                Ask me anything about code, writing, or analysis.
                             </p>
                         </div>
                     )}

@@ -9,6 +9,8 @@ services:
     volumes:
       - ./backend:/app/backend
       - ./cache:/app/cache
+      - ./models:/app/models
+      - ./backend/db:/app/backend/db
     environment:
       - PYTHONUNBUFFERED=1
 
