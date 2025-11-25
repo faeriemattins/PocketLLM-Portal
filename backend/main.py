@@ -14,7 +14,7 @@ init_db()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific frontend origin
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,49 +47,29 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT key, value, store_time, access_count FROM Cache")
-        rows = cursor.fetchall()
-        conn.close()
-        
-        cache_data = []
-        for row in rows:
-            key = row[0]
-            value = row[1]
-            
-            # Handle binary keys
-            if isinstance(key, bytes):
-                try:
-                    key = key.decode('utf-8')
-                except:
-                    key = str(key)
-            
-            # Handle binary values (likely pickled)
-            if isinstance(value, bytes):
-                try:
-                    # Try to decode as utf-8 first (in case it's just a string)
-                    value = value.decode('utf-8')
-                except:
-                    # If binary/pickled, just show representation
-                    value = f"<Binary Data: {len(value)} bytes>"
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": user['username'], "role": user['role']}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
-            cache_data.append({
-                "key": key,
-                "value": value,
-                "store_time": row[2],
-                "access_count": row[3]
-            })
-        return cache_data
-    except Exception as e:
-        print(f"Error reading cache: {e}")
-        return []
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 @app.get("/")
 def read_root():
     return {"message": "PocketLLM Portal Backend is running"}
 
+@app.on_event("startup")
+async def startup_event():
+    # Create default admin user
+    try:
+        hashed_pwd = auth.get_password_hash("admin123")
+        database.create_user("admin", hashed_pwd, role="admin")
+        print("Default admin user created/verified: admin/admin123")
+    except Exception:
+        pass # User likely exists
+
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8001, reload=True)

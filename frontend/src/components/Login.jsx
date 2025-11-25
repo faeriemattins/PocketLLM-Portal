@@ -6,17 +6,35 @@ import { clsx } from 'clsx';
 
 const Login = () => {
     const [mode, setMode] = useState(null); // 'user' | 'admin' | null
-    const [username, setUsername] = useState('admin');
-    const [password, setPassword] = useState('admin123');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // Mock validation - accept anything for now as requested
         if (username && password) {
-            login(mode);
-            navigate(mode === 'admin' ? '/admin' : '/');
+            const success = await login(username, password);
+            if (success) {
+                // Navigation happens based on role which is updated in context
+                // But we can also force it here if needed, or rely on a redirect in a protected route
+                // For now, let's check the role from localStorage or wait for state update
+                // A simple way is to just navigate based on the intended mode or the role we just got
+                // Since we don't return the role from login explicitly in the snippet above, let's trust the context update
+                // However, React state updates are async.
+
+                // Let's just navigate to root, and let the router redirect if needed, 
+                // OR check the role we expect.
+                // The user selected a "mode" (User vs Admin) in the UI, but the credentials determine the actual role.
+                // If they try to login as Admin with User creds, the backend might allow login but they won't have admin rights.
+                // We should probably redirect based on the *actual* role they have.
+
+                // For this immediate fix, let's just navigate to /admin if they selected admin, or / if user.
+                // If they lack permissions, the AdminDashboard should probably handle it (or we add a check).
+                navigate(mode === 'admin' ? '/admin' : '/');
+            } else {
+                alert("Login failed! Please check your credentials.");
+            }
         }
     };
 

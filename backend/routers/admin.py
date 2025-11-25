@@ -49,6 +49,10 @@ def get_system_stats(current_user: dict = Depends(get_current_admin_user)):
 def get_cache_stats(current_user: dict = Depends(get_current_admin_user)):
     return cache_manager.stats()
 
+@router.get("/cache-items")
+def get_cache_items(current_user: dict = Depends(get_current_admin_user)):
+    return cache_manager.get_all_items()
+
 @router.post("/clear-cache")
 def clear_cache(current_user: dict = Depends(get_current_admin_user)):
     cache_manager.clear()

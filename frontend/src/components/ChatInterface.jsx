@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Plus, MessageSquare, Trash2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Plus, MessageSquare, Trash2, AlertTriangle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getSessions, createSession, deleteSession, getSessionMessages, generateSessionTitle } from '../api';
 
@@ -10,6 +10,8 @@ const ChatInterface = () => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [sessionLimitReached, setSessionLimitReached] = useState(false);
+    const [limitErrorMessage, setLimitErrorMessage] = useState('');
     const messagesContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
 
@@ -42,6 +44,8 @@ const ChatInterface = () => {
 
     const selectSession = async (sessionId) => {
         setCurrentSessionId(sessionId);
+        setSessionLimitReached(false);
+        setLimitErrorMessage('');
         try {
             const msgs = await getSessionMessages(sessionId);
             setMessages(msgs);
@@ -56,6 +60,8 @@ const ChatInterface = () => {
             setSessions([newSession, ...sessions]);
             setCurrentSessionId(newSession.id);
             setMessages([]);
+            setSessionLimitReached(false);
+            setLimitErrorMessage('');
         } catch (error) {
             console.error("Failed to create session", error);
         }
@@ -79,6 +85,8 @@ const ChatInterface = () => {
                 } else {
                     setCurrentSessionId(null);
                     setMessages([]);
+                    setSessionLimitReached(false);
+                    setLimitErrorMessage('');
                 }
             }
         } catch (error) {
@@ -94,7 +102,7 @@ const ChatInterface = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!input.trim() || isLoading) return;
+        if (!input.trim() || isLoading || sessionLimitReached) return;
 
         let activeSessionId = currentSessionId;
         const isFirstMessage = messages.length === 0;
@@ -122,9 +130,13 @@ const ChatInterface = () => {
         setMessages(prev => [...prev, assistantMessage]);
 
         try {
-            const response = await fetch('http://localhost:8000/chat/completions', {
+            const token = localStorage.getItem('pocketllm_token');
+            const response = await fetch('http://127.0.0.1:8001/chat/completions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
                     messages: [...messages, userMessage],
                     temperature: 0.7,
@@ -133,7 +145,21 @@ const ChatInterface = () => {
             });
 
             if (!response.ok) {
+                console.log("DEBUG: Response not OK. Status:", response.status);
                 const errorData = await response.json().catch(() => ({}));
+                console.log("DEBUG: Error data:", errorData);
+
+                // Check for session limit error (400 Bad Request with specific message)
+                if (response.status === 400 && errorData.detail && errorData.detail.includes('maximum')) {
+                    console.log("DEBUG: Session limit reached! Setting state.");
+                    setSessionLimitReached(true);
+                    setLimitErrorMessage(errorData.detail);
+                    // Remove the empty assistant message
+                    setMessages(prev => prev.slice(0, -1));
+                    setIsLoading(false);
+                    return;
+                }
+
                 if (response.status === 403) {
                     throw new Error(errorData.detail || "Limit has exceeded, open a new chat");
                 }
@@ -300,22 +326,51 @@ const ChatInterface = () => {
                     <div ref={messagesEndRef} />
                 </div>
 
+                {/* Session Limit Warning Banner */}
+                {sessionLimitReached && (
+                    <div className="px-6 py-4 bg-amber-500/10 border-t border-amber-500/20 backdrop-blur-md animate-fade-in">
+                        <div className="flex items-center justify-between max-w-4xl mx-auto gap-4">
+                            <div className="flex items-center gap-3 text-amber-400">
+                                <div className="p-2 rounded-full bg-amber-500/20 shrink-0">
+                                    <AlertTriangle size={20} />
+                                </div>
+                                <div>
+                                    <p className="font-medium text-sm">Session Limit Reached</p>
+                                    <p className="text-xs text-amber-400/80">{limitErrorMessage}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleNewChat}
+                                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-medium text-sm rounded-lg transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 whitespace-nowrap"
+                            >
+                                Start New Chat
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Input Area */}
                 <div className="p-6 pt-2">
                     <form onSubmit={handleSubmit} className="relative max-w-4xl mx-auto">
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl blur-xl opacity-50 pointer-events-none" />
-                        <div className="relative flex items-center gap-2 bg-surface/80 backdrop-blur-2xl border border-white/10 rounded-2xl p-2 shadow-2xl shadow-black/50 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50 transition-all duration-300 group">
+                        <div className={clsx(
+                            "relative flex items-center gap-2 bg-surface/80 backdrop-blur-2xl border border-white/10 rounded-2xl p-2 shadow-2xl shadow-black/50 transition-all duration-300 group",
+                            sessionLimitReached ? "opacity-50 grayscale" : "focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50"
+                        )}>
                             <input
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                placeholder="Type your message..."
-                                className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 px-4 py-3 font-sans text-base"
-                                disabled={isLoading}
+                                placeholder={sessionLimitReached ? "Session limit reached. Please start a new chat." : "Type your message..."}
+                                className={clsx(
+                                    "flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 px-4 py-3 font-sans text-base",
+                                    sessionLimitReached && "cursor-not-allowed"
+                                )}
+                                disabled={isLoading || sessionLimitReached}
                             />
                             <button
                                 type="submit"
-                                disabled={isLoading || !input.trim()}
+                                disabled={isLoading || !input.trim() || sessionLimitReached}
                                 className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary-hover hover:to-accent disabled:opacity-50 disabled:hover:from-primary disabled:hover:to-primary-hover text-white transition-all duration-300 shadow-lg shadow-primary/20 hover:shadow-primary/40 transform hover:scale-105 active:scale-95"
                             >
                                 {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}

@@ -21,6 +21,11 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
+class User(BaseModel):
+    id: str
+    username: str
+    role: str
+
 def verify_password(plain_password, hashed_password):
     return check_password_hash(hashed_password, plain_password)
 
@@ -51,4 +56,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    return token_data
+        
+    from backend import database
+    user = database.get_user(token_data.username)
+    if user is None:
+        raise credentials_exception
+        
+    return User(**user)

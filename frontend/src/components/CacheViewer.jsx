@@ -1,22 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../api';
-import { Trash2, RefreshCw } from 'lucide-react';
+import { Trash2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const CacheViewer = () => {
     const [cacheData, setCacheData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     const fetchCache = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:8000/cache');
+            const token = localStorage.getItem('pocketllm_token');
+            const response = await fetch('http://127.0.0.1:8001/admin/cache-items', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch cache data');
             }
             const data = await response.json();
             setCacheData(data);
             setError(null);
+            setCurrentPage(1); // Reset to first page on refresh
         } catch (err) {
             setError(err.message);
         } finally {
@@ -36,6 +45,24 @@ const CacheViewer = () => {
             } catch (err) {
                 alert("Failed to clear cache: " + err.message);
             }
+        }
+    };
+
+    // Pagination logic
+    const totalPages = Math.ceil(cacheData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentItems = cacheData.slice(startIndex, endIndex);
+
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const goToPrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
         }
     };
 
@@ -61,6 +88,12 @@ const CacheViewer = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Pagination info */}
+            <div className="mb-4 text-sm text-gray-600">
+                Showing {startIndex + 1}-{Math.min(endIndex, cacheData.length)} of {cacheData.length} items
+            </div>
+
             <div className="overflow-x-auto">
                 <table className="min-w-full bg-white border border-gray-200 shadow-md rounded-lg">
                     <thead className="bg-gray-100">
@@ -72,12 +105,12 @@ const CacheViewer = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {cacheData.length === 0 ? (
+                        {currentItems.length === 0 ? (
                             <tr>
                                 <td colSpan="4" className="text-center py-4 text-gray-500">Cache is empty</td>
                             </tr>
                         ) : (
-                            cacheData.map((item) => (
+                            currentItems.map((item) => (
                                 <tr key={item.key} className="hover:bg-gray-50">
                                     <td className="py-2 px-4 border-b font-mono text-sm text-gray-600 truncate max-w-xs" title={item.key}>
                                         {item.key}
@@ -108,6 +141,39 @@ const CacheViewer = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+                <div className="mt-4 flex justify-center items-center gap-4">
+                    <button
+                        onClick={goToPrevPage}
+                        disabled={currentPage === 1}
+                        className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${currentPage === 1
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                            }`}
+                    >
+                        <ChevronLeft size={20} />
+                        <span className="text-sm font-medium">Previous</span>
+                    </button>
+
+                    <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1 rounded-md border border-gray-200">
+                        Page {currentPage} of {totalPages}
+                    </span>
+
+                    <button
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${currentPage === totalPages
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                            }`}
+                    >
+                        <span className="text-sm font-medium">Next</span>
+                        <ChevronRight size={20} />
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
