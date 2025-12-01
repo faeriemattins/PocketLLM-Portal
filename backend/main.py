@@ -70,6 +70,14 @@ async def startup_event():
         print("Default admin user created/verified: admin/admin123")
     except Exception:
         pass # User likely exists
+    
+    # Create default regular user
+    try:
+        hashed_pwd = auth.get_password_hash("password123")
+        database.create_user("user", hashed_pwd, role="user")
+        print("Default regular user created/verified: user/password123")
+    except Exception:
+        pass # User likely exists
 
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8001, reload=True)

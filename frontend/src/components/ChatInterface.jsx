@@ -131,7 +131,7 @@ const ChatInterface = () => {
 
         try {
             const token = localStorage.getItem('pocketllm_token');
-            const response = await fetch('http://127.0.0.1:8001/chat/completions', {
+            const response = await fetch('http://127.0.0.1:8000/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

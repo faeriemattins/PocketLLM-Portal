@@ -12,7 +12,7 @@ const CacheViewer = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('pocketllm_token');
-            const response = await fetch('http://127.0.0.1:8001/admin/cache-items', {
+            const response = await fetch('http://127.0.0.1:8000/admin/cache-items', {
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
