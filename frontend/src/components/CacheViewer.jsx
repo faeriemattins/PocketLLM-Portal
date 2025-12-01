@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../api';
-import { Trash2, RefreshCw, Database, Clock, Hash, Eye, AlertCircle } from 'lucide-react';
+import { Trash2, RefreshCw, Database, Clock, Hash, Eye, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const CacheViewer = () => {
     const [cacheData, setCacheData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedKeys, setExpandedKeys] = useState(new Set());
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     const fetchCache = async () => {
         try {
@@ -24,7 +26,7 @@ const CacheViewer = () => {
             const data = await response.json();
             setCacheData(data);
             setError(null);
-            setCurrentPage(1); // Reset to first page on refresh
+            setCurrentPage(1);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -55,6 +57,24 @@ const CacheViewer = () => {
             newExpanded.add(key);
         }
         setExpandedKeys(newExpanded);
+    };
+
+    // Pagination logic
+    const totalPages = Math.ceil(cacheData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentItems = cacheData.slice(startIndex, endIndex);
+
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const goToPrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
     };
 
     if (loading && cacheData.length === 0) {
@@ -160,7 +180,7 @@ const CacheViewer = () => {
                             <p className="text-gray-500">No cached responses yet. Start chatting to populate the cache.</p>
                         </div>
                     ) : (
-                        cacheData.map((item) => {
+                        currentItems.map((item) => {
                             const isExpanded = expandedKeys.has(item.key);
                             return (
                                 <div key={item.key} className="glass-card rounded-2xl overflow-hidden group hover:border-primary/30 transition-all duration-300">
@@ -203,40 +223,41 @@ const CacheViewer = () => {
                         })
                     )}
                 </div>
+
+                {/* Pagination controls */}
+                {totalPages > 1 && (
+                    <div className="mt-6 flex justify-center items-center gap-4">
+                        <button
+                            onClick={goToPrevPage}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${currentPage === 1
+                                ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+                                : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                                }`}
+                        >
+                            <ChevronLeft size={20} />
+                            <span className="text-sm font-medium">Previous</span>
+                        </button>
+
+                        <span className="text-sm font-medium text-gray-400 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
+                            Page {currentPage} of {totalPages}
+                        </span>
+
+                        <button
+                            onClick={goToNextPage}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${currentPage === totalPages
+                                ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+                                : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                                }`}
+                        >
+                            <span className="text-sm font-medium">Next</span>
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {/* Pagination controls */}
-            {totalPages > 1 && (
-                <div className="mt-4 flex justify-center items-center gap-4">
-                    <button
-                        onClick={goToPrevPage}
-                        disabled={currentPage === 1}
-                        className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${currentPage === 1
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
-                            }`}
-                    >
-                        <ChevronLeft size={20} />
-                        <span className="text-sm font-medium">Previous</span>
-                    </button>
-
-                    <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1 rounded-md border border-gray-200">
-                        Page {currentPage} of {totalPages}
-                    </span>
-
-                    <button
-                        onClick={goToNextPage}
-                        disabled={currentPage === totalPages}
-                        className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${currentPage === totalPages
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
-                            }`}
-                    >
-                        <span className="text-sm font-medium">Next</span>
-                        <ChevronRight size={20} />
-                    </button>
-                </div>
-            )}
         </div>
     );
 };
