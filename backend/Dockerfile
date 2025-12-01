@@ -10,18 +10,23 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
-COPY . .
+# Copy the backend application code
+COPY backend/ ./backend/
 
+# Copy download_model.py from workspace root into the image
+COPY download_model.py .
 
+# Copy entrypoint script and make executable
+COPY backend/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use entrypoint to download models on first start, then launch the app
+ENTRYPOINT ["/app/entrypoint.sh"]

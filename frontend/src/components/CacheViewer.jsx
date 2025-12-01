@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../api';
-import { Trash2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, RefreshCw, Database, Clock, Hash, Eye, AlertCircle } from 'lucide-react';
 
 const CacheViewer = () => {
     const [cacheData, setCacheData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [expandedKeys, setExpandedKeys] = useState(new Set());
 
     const fetchCache = async () => {
         try {
@@ -48,98 +47,162 @@ const CacheViewer = () => {
         }
     };
 
-    // Pagination logic
-    const totalPages = Math.ceil(cacheData.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const currentItems = cacheData.slice(startIndex, endIndex);
-
-    const goToNextPage = () => {
-        if (currentPage < totalPages) {
-            setCurrentPage(currentPage + 1);
+    const toggleExpand = (key) => {
+        const newExpanded = new Set(expandedKeys);
+        if (newExpanded.has(key)) {
+            newExpanded.delete(key);
+        } else {
+            newExpanded.add(key);
         }
+        setExpandedKeys(newExpanded);
     };
 
-    const goToPrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
-    };
+    if (loading && cacheData.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                    <RefreshCw className="animate-spin text-primary mx-auto mb-4" size={48} />
+                    <p className="text-gray-400">Loading cache data...</p>
+                </div>
+            </div>
+        );
+    }
 
-    if (loading && cacheData.length === 0) return <div className="text-center p-4">Loading cache data...</div>;
-    if (error) return <div className="text-red-500 p-4">Error: {error}</div>;
-
-    return (
-        <div className="container mx-auto p-4">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">Cache Contents</h1>
-                <div className="space-x-2">
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="glass-card p-8 rounded-2xl text-center max-w-md">
+                    <AlertCircle className="text-red-400 mx-auto mb-4" size={48} />
+                    <h3 className="text-xl font-semibold text-white mb-2">Error Loading Cache</h3>
+                    <p className="text-red-400">{error}</p>
                     <button
                         onClick={fetchCache}
-                        className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-2"
+                        className="mt-4 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all"
                     >
-                        <RefreshCw size={16} /> Refresh
-                    </button>
-                    <button
-                        onClick={handleClearCache}
-                        className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex items-center gap-2"
-                    >
-                        <Trash2 size={16} /> Clear Cache
+                        Try Again
                     </button>
                 </div>
             </div>
+        );
+    }
 
-            {/* Pagination info */}
-            <div className="mb-4 text-sm text-gray-600">
-                Showing {startIndex + 1}-{Math.min(endIndex, cacheData.length)} of {cacheData.length} items
-            </div>
+    return (
+        <div className="h-full overflow-auto p-8">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-heading font-bold text-white mb-2">Cache Management</h1>
+                        <p className="text-gray-400">View and manage cached responses</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={fetchCache}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20 disabled:opacity-50"
+                        >
+                            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                            <span className="font-medium">Refresh</span>
+                        </button>
+                        <button
+                            onClick={handleClearCache}
+                            className="flex items-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-all duration-300 border border-red-500/20 hover:border-red-500/40"
+                        >
+                            <Trash2 size={18} />
+                            <span className="font-medium">Clear Cache</span>
+                        </button>
+                    </div>
+                </div>
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border border-gray-200 shadow-md rounded-lg">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="py-2 px-4 border-b text-left font-semibold text-gray-700">Key</th>
-                            <th className="py-2 px-4 border-b text-left font-semibold text-gray-700">Value (Truncated)</th>
-                            <th className="py-2 px-4 border-b text-left font-semibold text-gray-700">Store Time</th>
-                            <th className="py-2 px-4 border-b text-left font-semibold text-gray-700">Access Count</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentItems.length === 0 ? (
-                            <tr>
-                                <td colSpan="4" className="text-center py-4 text-gray-500">Cache is empty</td>
-                            </tr>
-                        ) : (
-                            currentItems.map((item) => (
-                                <tr key={item.key} className="hover:bg-gray-50">
-                                    <td className="py-2 px-4 border-b font-mono text-sm text-gray-600 truncate max-w-xs" title={item.key}>
-                                        {item.key}
-                                    </td>
-                                    <td className="py-2 px-4 border-b text-sm text-gray-800">
-                                        <div className="max-h-20 overflow-y-auto">
-                                            {item.value.length > 100 ? (
-                                                <details>
-                                                    <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
-                                                        {item.value.substring(0, 100)}...
-                                                    </summary>
-                                                    <p className="mt-2 whitespace-pre-wrap text-gray-700">{item.value}</p>
-                                                </details>
-                                            ) : (
-                                                item.value
-                                            )}
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="glass-card p-6 rounded-2xl">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-3 bg-primary/10 rounded-xl text-primary">
+                                <Database size={20} />
+                            </div>
+                            <span className="text-gray-400 text-sm font-medium">Total Items</span>
+                        </div>
+                        <h3 className="text-3xl font-bold text-white">{cacheData.length}</h3>
+                    </div>
+                    <div className="glass-card p-6 rounded-2xl">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
+                                <Eye size={20} />
+                            </div>
+                            <span className="text-gray-400 text-sm font-medium">Total Access</span>
+                        </div>
+                        <h3 className="text-3xl font-bold text-white">
+                            {cacheData.reduce((sum, item) => sum + item.access_count, 0)}
+                        </h3>
+                    </div>
+                    <div className="glass-card p-6 rounded-2xl">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-3 bg-accent/10 rounded-xl text-accent">
+                                <Hash size={20} />
+                            </div>
+                            <span className="text-gray-400 text-sm font-medium">Avg Access</span>
+                        </div>
+                        <h3 className="text-3xl font-bold text-white">
+                            {cacheData.length > 0
+                                ? (cacheData.reduce((sum, item) => sum + item.access_count, 0) / cacheData.length).toFixed(1)
+                                : '0'}
+                        </h3>
+                    </div>
+                </div>
+
+                {/* Cache Items */}
+                <div className="space-y-3">
+                    {cacheData.length === 0 ? (
+                        <div className="glass-card p-12 rounded-2xl text-center">
+                            <Database className="text-gray-600 mx-auto mb-4" size={64} />
+                            <h3 className="text-xl font-semibold text-gray-400 mb-2">Cache is Empty</h3>
+                            <p className="text-gray-500">No cached responses yet. Start chatting to populate the cache.</p>
+                        </div>
+                    ) : (
+                        cacheData.map((item) => {
+                            const isExpanded = expandedKeys.has(item.key);
+                            return (
+                                <div key={item.key} className="glass-card rounded-2xl overflow-hidden group hover:border-primary/30 transition-all duration-300">
+                                    <div className="p-6">
+                                        <div className="flex items-start justify-between gap-4 mb-4">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Hash size={16} className="text-primary shrink-0" />
+                                                    <code className="text-sm font-mono text-gray-300 truncate">
+                                                        {item.key}
+                                                    </code>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock size={14} />
+                                                        <span>{new Date(item.store_time * 1000).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Eye size={14} />
+                                                        <span>{item.access_count} access{item.access_count !== 1 ? 'es' : ''}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => toggleExpand(item.key)}
+                                                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all text-sm font-medium shrink-0"
+                                            >
+                                                {isExpanded ? 'Collapse' : 'Expand'}
+                                            </button>
                                         </div>
-                                    </td>
-                                    <td className="py-2 px-4 border-b text-sm text-gray-600">
-                                        {new Date(item.store_time * 1000).toLocaleString()}
-                                    </td>
-                                    <td className="py-2 px-4 border-b text-sm text-gray-600">
-                                        {item.access_count}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+
+                                        <div className={`bg-black/20 rounded-xl p-4 border border-white/5 transition-all duration-300 ${isExpanded ? 'max-h-96 overflow-y-auto' : 'max-h-24 overflow-hidden'}`}>
+                                            <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
+                                                {item.value}
+                                            </pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
 
             {/* Pagination controls */}

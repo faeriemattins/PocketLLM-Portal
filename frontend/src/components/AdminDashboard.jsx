@@ -10,6 +10,7 @@ const AdminDashboard = () => {
     const [sessionConfig, setSessionConfig] = useState({ max_prompts: 20 });
     const [cacheSessionConfig, setCacheSessionConfig] = useState({ max_cached_sessions: 10 });
     const [modelData, setModelData] = useState({ models: [], current_model: '' });
+    const [loadingModels, setLoadingModels] = useState(false);
     const [newCacheLimit, setNewCacheLimit] = useState(20);
     const [newCacheSessionLimit, setNewCacheSessionLimit] = useState(10);
 
@@ -131,7 +132,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                     icon={<Cpu className="text-primary" />}
                     label="CPU Usage"
@@ -150,24 +151,7 @@ const AdminDashboard = () => {
                     value={`${(cacheStats.size_bytes / (1024 * 1024)).toFixed(2)} MB`}
                     subValue={`${cacheStats.count} items`}
                 />
-                <div className="glass-card p-6 rounded-2xl flex flex-col justify-between group relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-3 bg-red-500/10 rounded-xl text-red-400">
-                                <Server size={20} />
-                            </div>
-                            <span className="text-gray-400 text-sm font-medium">Maintenance</span>
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-1">Actions</h3>
-                    </div>
-                    <button
-                        onClick={handleClearCache}
-                        className="mt-4 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 px-4 rounded-xl transition-all duration-300 border border-red-500/20 hover:border-red-500/40 hover:shadow-lg hover:shadow-red-500/10"
-                    >
-                        <Trash2 size={18} /> Clear Cache
-                    </button>
-                </div>
+
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
@@ -314,7 +298,29 @@ const AdminDashboard = () => {
                 </h3>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm text-gray-400 mb-2">Active LLM Model</label>
+                        <div className="flex items-center justify-between">
+                            <label className="block text-sm text-gray-400 mb-2">Active LLM Model</label>
+                            <button
+                                onClick={async () => {
+                                    setLoadingModels(true);
+                                    try {
+                                        const res = await adminApi.getModels();
+                                        setModelData(res.data);
+                                    } catch (err) {
+                                        console.error('Failed to refresh models', err);
+                                        alert('Failed to refresh models');
+                                    } finally {
+                                        setLoadingModels(false);
+                                    }
+                                }}
+                                title="Refresh models"
+                                className="ml-2 inline-flex items-center gap-2 px-3 py-1 bg-black/20 border border-white/10 rounded-full text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                            >
+                                <RefreshCw size={14} />
+                                {loadingModels ? 'Refreshing...' : 'Refresh'}
+                            </button>
+                        </div>
+
                         <select
                             value={modelData.current_model}
                             onChange={handleModelChange}
