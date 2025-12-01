@@ -131,9 +131,6 @@ const Layout = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-gray-400">
-              <Settings size={18} />
-            </div>
           </div>
         </header>
 

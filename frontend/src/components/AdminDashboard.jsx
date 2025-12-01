@@ -132,7 +132,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                     icon={<Cpu className="text-primary" />}
                     label="CPU Usage"
@@ -151,24 +151,7 @@ const AdminDashboard = () => {
                     value={`${(cacheStats.size_bytes / (1024 * 1024)).toFixed(2)} MB`}
                     subValue={`${cacheStats.count} items`}
                 />
-                <div className="glass-card p-6 rounded-2xl flex flex-col justify-between group relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-3 bg-red-500/10 rounded-xl text-red-400">
-                                <Server size={20} />
-                            </div>
-                            <span className="text-gray-400 text-sm font-medium">Maintenance</span>
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-1">Actions</h3>
-                    </div>
-                    <button
-                        onClick={handleClearCache}
-                        className="mt-4 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 px-4 rounded-xl transition-all duration-300 border border-red-500/20 hover:border-red-500/40 hover:shadow-lg hover:shadow-red-500/10"
-                    >
-                        <Trash2 size={18} /> Clear Cache
-                    </button>
-                </div>
+
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
