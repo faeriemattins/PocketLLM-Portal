@@ -10,6 +10,7 @@ const AdminDashboard = () => {
     const [sessionConfig, setSessionConfig] = useState({ max_prompts: 20 });
     const [cacheSessionConfig, setCacheSessionConfig] = useState({ max_cached_sessions: 10 });
     const [modelData, setModelData] = useState({ models: [], current_model: '' });
+    const [loadingModels, setLoadingModels] = useState(false);
     const [newCacheLimit, setNewCacheLimit] = useState(20);
     const [newCacheSessionLimit, setNewCacheSessionLimit] = useState(10);
 
@@ -314,7 +315,29 @@ const AdminDashboard = () => {
                 </h3>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm text-gray-400 mb-2">Active LLM Model</label>
+                        <div className="flex items-center justify-between">
+                            <label className="block text-sm text-gray-400 mb-2">Active LLM Model</label>
+                            <button
+                                onClick={async () => {
+                                    setLoadingModels(true);
+                                    try {
+                                        const res = await adminApi.getModels();
+                                        setModelData(res.data);
+                                    } catch (err) {
+                                        console.error('Failed to refresh models', err);
+                                        alert('Failed to refresh models');
+                                    } finally {
+                                        setLoadingModels(false);
+                                    }
+                                }}
+                                title="Refresh models"
+                                className="ml-2 inline-flex items-center gap-2 px-3 py-1 bg-black/20 border border-white/10 rounded-full text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                            >
+                                <RefreshCw size={14} />
+                                {loadingModels ? 'Refreshing...' : 'Refresh'}
+                            </button>
+                        </div>
+
                         <select
                             value={modelData.current_model}
                             onChange={handleModelChange}
