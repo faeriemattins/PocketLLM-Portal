@@ -31,7 +31,13 @@ const Login = () => {
 
                 // For this immediate fix, let's just navigate to /admin if they selected admin, or / if user.
                 // If they lack permissions, the AdminDashboard should probably handle it (or we add a check).
-                navigate(mode === 'admin' ? '/admin' : '/');
+                // Check the actual role from the token (via localStorage or context if updated)
+                const role = localStorage.getItem('pocketllm_role');
+                if (role === 'admin') {
+                    navigate('/admin');
+                } else {
+                    navigate('/');
+                }
             } else {
                 alert("Login failed! Please check your credentials.");
             }
