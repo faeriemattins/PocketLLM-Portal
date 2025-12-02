@@ -21,12 +21,12 @@ COPY backend/ ./backend/
 # Copy download_model.py from workspace root into the image
 COPY download_model.py .
 
-# Copy entrypoint script and make executable
-COPY backend/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+# Copy entrypoint script into the backend folder and make executable
+COPY backend/entrypoint.sh /app/backend/entrypoint.sh
+RUN chmod +x /app/backend/entrypoint.sh
 
 # Expose the port the app runs on
 EXPOSE 8000
 
 # Use entrypoint to download models on first start, then launch the app
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/app/backend/entrypoint.sh"]
