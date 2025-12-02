@@ -66,7 +66,11 @@ const Login = () => {
                             <h2 className="text-xl font-medium text-white mb-6 text-center">Select Access Mode</h2>
 
                             <button
-                                onClick={() => setMode('user')}
+                                onClick={() => {
+                                    setMode('user');
+                                    setUsername('');
+                                    setPassword('');
+                                }}
                                 className="w-full group relative flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-primary/50 transition-all duration-300"
                             >
                                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -80,7 +84,11 @@ const Login = () => {
                             </button>
 
                             <button
-                                onClick={() => setMode('admin')}
+                                onClick={() => {
+                                    setMode('admin');
+                                    setUsername('');
+                                    setPassword('');
+                                }}
                                 className="w-full group relative flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-purple/50 transition-all duration-300"
                             >
                                 <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -96,7 +104,11 @@ const Login = () => {
                     ) : (
                         <div className="p-8">
                             <button
-                                onClick={() => setMode(null)}
+                                onClick={() => {
+                                    setMode(null);
+                                    setUsername('');
+                                    setPassword('');
+                                }}
                                 className="text-sm text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"
                             >
                                 ← Back to modes
