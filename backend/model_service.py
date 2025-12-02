@@ -50,14 +50,35 @@ class ModelService:
         )
         print(f"Model loaded successfully: {os.path.basename(self.current_model_path)}")
 
-    def stream_chat(self, messages: list, temperature: float = 0.7) -> Generator[str, None, None]:
+    def stream_chat(self, messages: list, temperature: float = 0.7, top_p: float = 0.9, max_tokens: int = 2048, system_prompt: str = None) -> Generator[str, None, None]:
         if not self.llm:
             self.load_model()
         
-        # Convert messages to prompt format if needed, but llama-cpp-python's create_chat_completion handles it
+        # Create a copy to avoid mutating the original
+        messages_copy = list(messages)
+        
+        # Debug logging
+        print(f"[DEBUG] System prompt received: {system_prompt}")
+        print(f"[DEBUG] Messages before: {messages_copy}")
+        
+        # Prepend system prompt if provided and not already present
+        if system_prompt:
+            if not messages_copy or messages_copy[0].get('role') != 'system':
+                messages_copy.insert(0, {"role": "system", "content": system_prompt})
+                print(f"[DEBUG] System prompt ADDED to messages")
+            else:
+                print(f"[DEBUG] System message already present, skipping")
+        else:
+            print(f"[DEBUG] No system prompt provided")
+        
+        print(f"[DEBUG] Messages after: {messages_copy}")
+        print(f"[DEBUG] Temperature: {temperature}, Top-P: {top_p}, Max Tokens: {max_tokens}")
+        
         stream = self.llm.create_chat_completion(
-            messages=messages,
+            messages=messages_copy,
             temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
             stream=True
         )
 

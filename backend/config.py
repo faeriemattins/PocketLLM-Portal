@@ -7,7 +7,12 @@ class ConfigManager:
     def __init__(self):
         self.config = {
             "max_prompts": 20,
-            "max_cached_sessions": 10
+            "max_cached_sessions": 10,
+            "safety_enabled": True,
+            "default_temperature": 0.7,
+            "default_top_p": 0.9,
+            "default_max_tokens": 2048,
+            "system_prompt": "You are a helpful AI assistant."
         }
         self.load_config()
 

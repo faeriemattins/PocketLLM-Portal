@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { adminApi } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Activity, Database, Cpu, Trash2, RefreshCw, Zap, Server, Save, MessageSquare } from 'lucide-react';
+import { Activity, Database, Cpu, Trash2, RefreshCw, Zap, Server, Save, MessageSquare, Shield, AlertTriangle, Clock, BarChart2 } from 'lucide-react';
 
 const AdminDashboard = () => {
     const [systemStats, setSystemStats] = useState(null);
@@ -10,6 +10,13 @@ const AdminDashboard = () => {
     const [sessionConfig, setSessionConfig] = useState({ max_prompts: 20 });
     const [cacheSessionConfig, setCacheSessionConfig] = useState({ max_cached_sessions: 10 });
     const [modelData, setModelData] = useState({ models: [], current_model: '' });
+    const [modelParams, setModelParams] = useState({
+        temperature: 0.7,
+        top_p: 0.9,
+        max_tokens: 2048,
+        system_prompt: '',
+        safety_enabled: true
+    });
     const [loadingModels, setLoadingModels] = useState(false);
     const [newCacheLimit, setNewCacheLimit] = useState(20);
     const [newCacheSessionLimit, setNewCacheSessionLimit] = useState(10);
@@ -41,16 +48,18 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const [configRes, cacheConfigRes, modelsRes] = await Promise.all([
+                const [configRes, cacheConfigRes, modelsRes, modelParamsRes] = await Promise.all([
                     adminApi.getSessionConfig(),
                     adminApi.getCacheSessionConfig(),
-                    adminApi.getModels()
+                    adminApi.getModels(),
+                    adminApi.getModelParams()
                 ]);
                 setSessionConfig(configRes.data);
                 setNewCacheLimit(configRes.data.max_prompts);
                 setCacheSessionConfig(cacheConfigRes.data);
                 setNewCacheSessionLimit(cacheConfigRes.data.max_cached_sessions);
                 setModelData(modelsRes.data);
+                setModelParams(modelParamsRes.data);
             } catch (error) {
                 console.error("Failed to fetch config", error);
             }
@@ -94,6 +103,16 @@ const AdminDashboard = () => {
         } catch (error) {
             console.error("Failed to change model", error);
             alert("Failed to change model");
+        }
+    };
+
+    const handleSaveModelParams = async () => {
+        try {
+            await adminApi.setModelParams(modelParams);
+            alert("Model parameters updated!");
+        } catch (error) {
+            console.error("Failed to update model params", error);
+            alert("Failed to update model params");
         }
     };
 
@@ -150,6 +169,24 @@ const AdminDashboard = () => {
                     label="Cache Size"
                     value={`${(cacheStats.size_bytes / (1024 * 1024)).toFixed(2)} MB`}
                     subValue={`${cacheStats.count} items`}
+                />
+                <StatCard
+                    icon={<Zap className="text-yellow-400" />}
+                    label="QPS"
+                    value={systemStats.telemetry?.qps || 0}
+                    subValue="Queries / sec"
+                />
+                <StatCard
+                    icon={<Clock className="text-blue-400" />}
+                    label="Avg Latency"
+                    value={`${systemStats.telemetry?.avg_latency_ms || 0} ms`}
+                    subValue="Per request"
+                />
+                <StatCard
+                    icon={<Shield className="text-red-400" />}
+                    label="Blocked"
+                    value={systemStats.telemetry?.blocked_requests || 0}
+                    subValue="Safety violations"
                 />
 
             </div>
@@ -335,6 +372,67 @@ const AdminDashboard = () => {
                             Selected model will be used for all new chat sessions.
                         </p>
                     </div>
+                </div>
+            </div>
+
+            {/* Model Parameters Section */}
+            <div className="glass-card p-6 rounded-2xl">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Activity size={18} className="text-purple-400" />
+                    Model Runtime Parameters
+                </h3>
+                <div className="space-y-4 w-full">
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-2">Temperature ({modelParams.temperature})</label>
+                        <input
+                            type="range"
+                            min="0"
+                            max="2"
+                            step="0.1"
+                            value={modelParams.temperature}
+                            onChange={(e) => setModelParams({ ...modelParams, temperature: parseFloat(e.target.value) })}
+                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-2">Top P ({modelParams.top_p})</label>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={modelParams.top_p}
+                            onChange={(e) => setModelParams({ ...modelParams, top_p: parseFloat(e.target.value) })}
+                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-2">Max Tokens</label>
+                        <input
+                            type="number"
+                            value={modelParams.max_tokens}
+                            onChange={(e) => setModelParams({ ...modelParams, max_tokens: parseInt(e.target.value) })}
+                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500/50"
+                        />
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                        <div className="flex items-center gap-2">
+                            <Shield size={16} className={modelParams.safety_enabled ? "text-green-400" : "text-gray-400"} />
+                            <span className="text-sm text-gray-300">Safety Filter</span>
+                        </div>
+                        <button
+                            onClick={() => setModelParams({ ...modelParams, safety_enabled: !modelParams.safety_enabled })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${modelParams.safety_enabled ? 'bg-green-500' : 'bg-gray-600'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${modelParams.safety_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+                    <button
+                        onClick={handleSaveModelParams}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-500/10 text-purple-400 rounded-lg hover:bg-purple-500/20 transition-colors border border-purple-500/20"
+                    >
+                        <Save size={16} /> Save Parameters
+                    </button>
                 </div>
             </div>
         </div>

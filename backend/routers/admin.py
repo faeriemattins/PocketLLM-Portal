@@ -3,6 +3,7 @@ import psutil
 import os
 from backend.cache_manager import cache_manager
 from backend.model_service import model_service
+from backend.telemetry import telemetry_manager
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -18,13 +19,21 @@ class CacheSessionConfig(BaseModel):
 class ModelSelection(BaseModel):
     model_filename: str
 
+class ModelParams(BaseModel):
+    temperature: float
+    top_p: float
+    max_tokens: int
+    system_prompt: str
+    safety_enabled: bool
+
 @router.get("/system-stats")
 def get_system_stats():
     return {
         "cpu_percent": psutil.cpu_percent(interval=1),
         "memory_percent": psutil.virtual_memory().percent,
         "memory_used_gb": round(psutil.virtual_memory().used / (1024**3), 2),
-        "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 2)
+        "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 2),
+        "telemetry": telemetry_manager.get_stats()
     }
 
 @router.get("/cache-stats")
@@ -70,3 +79,22 @@ def select_model(selection: ModelSelection):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/model-params")
+def get_model_params():
+    return {
+        "temperature": config_manager.get("default_temperature", 0.7),
+        "top_p": config_manager.get("default_top_p", 0.9),
+        "max_tokens": config_manager.get("default_max_tokens", 2048),
+        "system_prompt": config_manager.get("system_prompt", "You are a helpful AI assistant."),
+        "safety_enabled": config_manager.get("safety_enabled", True)
+    }
+
+@router.post("/model-params")
+def set_model_params(params: ModelParams):
+    config_manager.set("default_temperature", params.temperature)
+    config_manager.set("default_top_p", params.top_p)
+    config_manager.set("default_max_tokens", params.max_tokens)
+    config_manager.set("system_prompt", params.system_prompt)
+    config_manager.set("safety_enabled", params.safety_enabled)
+    return {"status": "Model parameters updated", "params": params}

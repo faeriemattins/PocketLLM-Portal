@@ -1,4 +1,9 @@
 {
     "max_prompts": 20,
-    "max_cached_sessions": 10
+    "max_cached_sessions": 10,
+    "safety_enabled": true,
+    "default_temperature": 0.2,
+    "default_top_p": 0.45,
+    "default_max_tokens": 1000,
+    "system_prompt": "You MUST start every single response with the word \"HAPPY:\" followed by your answer."
 }

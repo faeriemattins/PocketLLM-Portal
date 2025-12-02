@@ -188,7 +188,8 @@ const ChatInterface = () => {
         } catch (error) {
             console.error('Error sending message:', error);
             const errorMessage = error.message || 'Error: Could not connect to the server.';
-            setMessages(prev => [...prev, { role: 'system', content: errorMessage }]);
+            // Use 'assistant' role for errors to avoid polluting system messages
+            setMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: `⚠️ ${errorMessage}` }]);
         } finally {
             setIsLoading(false);
         }

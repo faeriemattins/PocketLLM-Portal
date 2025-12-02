@@ -10,7 +10,11 @@ import hashlib
 router = APIRouter()
 
 from backend import database
+from backend import database
 from backend.config import config_manager
+from backend.telemetry import telemetry_manager
+from backend.safety import safety_filter
+import time
 
 class Message(BaseModel):
     role: str
@@ -23,6 +27,18 @@ class ChatRequest(BaseModel):
 
 @router.post("/completions")
 async def chat_completions(request: ChatRequest):
+    start_time = time.time()
+    telemetry_manager.record_request()
+
+    # Safety Check
+    if config_manager.get("safety_enabled", True):
+        # Check last user message
+        last_user_msg = request.messages[-1].content
+        is_safe, reason, _ = safety_filter.check(last_user_msg)
+        if not is_safe:
+            telemetry_manager.record_blocked()
+            raise HTTPException(status_code=400, detail=f"Safety violation: {reason}")
+
     # Create session-based cache key
     last_message = request.messages[-1].content
     if request.session_id:
@@ -46,6 +62,8 @@ async def chat_completions(request: ChatRequest):
     # Check cache
     cached_response = cache_manager.get(cache_key)
     if cached_response:
+        telemetry_manager.record_cache_hit()
+        telemetry_manager.record_latency((time.time() - start_time) * 1000)
         if request.session_id:
             cache_manager.track_session_cache(request.session_id)
         # If cached, we stream it back as if it were generated
@@ -65,10 +83,16 @@ async def chat_completions(request: ChatRequest):
         try:
             for chunk in model_service.stream_chat(
                 messages=[m.dict() for m in request.messages],
-                temperature=request.temperature
+                temperature=request.temperature or config_manager.get("default_temperature", 0.7),
+                top_p=config_manager.get("default_top_p", 0.9),
+                max_tokens=config_manager.get("default_max_tokens", 2048),
+                system_prompt=config_manager.get("system_prompt", "You are a helpful AI assistant.")
             ):
                 full_response += chunk
+                telemetry_manager.record_tokens(1) # Approximate
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
+            
+            telemetry_manager.record_latency((time.time() - start_time) * 1000)
             
             # Cache the response and track session
             cache_manager.set(cache_key, full_response)

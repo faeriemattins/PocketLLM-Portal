@@ -27,7 +27,7 @@ class CacheManager:
             cached_sessions_count = 0
         
         try:
-            size_bytes = int(self.cache.size)
+            size_bytes = int(self.cache.volume())
         except Exception:
             size_bytes = 0
         

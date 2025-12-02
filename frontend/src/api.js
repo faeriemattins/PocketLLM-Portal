@@ -56,5 +56,11 @@ export const adminApi = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model_filename })
+    }).then(res => res.json()),
+    getModelParams: () => fetch(`${API_BASE}/admin/model-params`).then(res => res.json().then(data => ({ data }))),
+    setModelParams: (params) => fetch(`${API_BASE}/admin/model-params`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params)
     }).then(res => res.json())
 };
