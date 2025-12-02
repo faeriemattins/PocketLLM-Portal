@@ -6,6 +6,9 @@ from pydantic import BaseModel
 import sqlite3
 import os
 from backend.database import init_db
+from backend import auth, database
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
 
 app = FastAPI(title="PocketLLM Portal")
 
@@ -14,7 +17,12 @@ init_db()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,10 +31,6 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
-
-from backend import auth, database
-from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
 
 @app.post("/auth/register")
 async def register(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -80,4 +84,4 @@ async def startup_event():
         pass # User likely exists
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

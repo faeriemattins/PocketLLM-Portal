@@ -6,3 +6,6 @@ psutil
 pydantic
 huggingface_hub
 python-multipart
+werkzeug
+python-jose[cryptography]
+passlib[bcrypt]
