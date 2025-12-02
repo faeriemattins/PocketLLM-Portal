@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   backend:
@@ -14,7 +14,6 @@ services:
       - ./backend/db:/app/backend/db
     environment:
       - PYTHONUNBUFFERED=1
-    entrypoint: ["/bin/sh", "-c", "/app/backend/entrypoint.sh"]
 
   frontend:
     build:
