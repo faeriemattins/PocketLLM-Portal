@@ -86,7 +86,8 @@ async def chat_completions(request: ChatRequest):
                 temperature=request.temperature or config_manager.get("default_temperature", 0.7),
                 top_p=config_manager.get("default_top_p", 0.9),
                 max_tokens=config_manager.get("default_max_tokens", 2048),
-                system_prompt=config_manager.get("system_prompt", "You are a helpful AI assistant.")
+                system_prompt=config_manager.get("system_prompt", "You are a helpful AI assistant."),
+                session_id=request.session_id  # Pass session_id for cache management
             ):
                 full_response += chunk
                 telemetry_manager.record_tokens(1) # Approximate

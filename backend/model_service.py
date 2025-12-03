@@ -9,6 +9,7 @@ class ModelService:
     def __init__(self):
         self.llm = None
         self.current_model_path = DEFAULT_MODEL_PATH
+        self.current_session_id = None  # Track current session to detect switches
         if not os.path.exists(MODEL_DIR):
             os.makedirs(MODEL_DIR)
 
@@ -50,9 +51,23 @@ class ModelService:
         )
         print(f"Model loaded successfully: {os.path.basename(self.current_model_path)}")
 
-    def stream_chat(self, messages: list, temperature: float = 0.7, top_p: float = 0.9, max_tokens: int = 2048, system_prompt: str = None) -> Generator[str, None, None]:
+    def reset_for_session(self, session_id: str):
+        """Reset model state when switching to a different session to prevent KV cache conflicts"""
+        if session_id != self.current_session_id:
+            print(f"[DEBUG] Session switch detected: {self.current_session_id} -> {session_id}")
+            self.current_session_id = session_id
+            # Reload the model to clear KV cache
+            if self.llm:
+                print(f"[DEBUG] Resetting model to clear KV cache for new session")
+                self.load_model()
+
+    def stream_chat(self, messages: list, temperature: float = 0.7, top_p: float = 0.9, max_tokens: int = 2048, system_prompt: str = None, session_id: str = None) -> Generator[str, None, None]:
         if not self.llm:
             self.load_model()
+        
+        # Reset model if switching sessions
+        if session_id:
+            self.reset_for_session(session_id)
         
         # Create a copy to avoid mutating the original
         messages_copy = list(messages)

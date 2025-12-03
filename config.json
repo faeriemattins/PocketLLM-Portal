@@ -1,9 +1,9 @@
 {
-    "max_prompts": 20,
+    "max_prompts": 6,
     "max_cached_sessions": 10,
     "safety_enabled": true,
-    "default_temperature": 0.2,
-    "default_top_p": 0.45,
+    "default_temperature": 0.3,
+    "default_top_p": 0.4,
     "default_max_tokens": 1000,
-    "system_prompt": "You MUST start every single response with the word \"HAPPY:\" followed by your answer."
+    "system_prompt": "You are a n AI assistant that helps users with their tasks and queries."
 }
