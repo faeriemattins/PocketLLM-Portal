@@ -8,15 +8,36 @@ const Login = () => {
     const [mode, setMode] = useState(null); // 'user' | 'admin' | null
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
 
+    // Define credentials for admin and user
+    const CREDENTIALS = {
+        admin: {
+            username: 'admin',
+            password: 'admin123'
+        },
+        user: {
+            username: 'user',
+            password: 'user123'
+        }
+    };
+
     const handleLogin = (e) => {
         e.preventDefault();
-        // Mock validation - accept anything for now as requested
-        if (username && password) {
+        setError(''); // Clear previous errors
+
+        // Validate credentials based on selected mode
+        const validCredentials = CREDENTIALS[mode];
+
+        if (username === validCredentials.username && password === validCredentials.password) {
+            // Successful login
             login(mode);
             navigate(mode === 'admin' ? '/admin' : '/');
+        } else {
+            // Failed login
+            setError('Invalid username or password. Please try again.');
         }
     };
 
@@ -42,7 +63,12 @@ const Login = () => {
                             <h2 className="text-xl font-medium text-white mb-6 text-center">Select Access Mode</h2>
 
                             <button
-                                onClick={() => setMode('user')}
+                                onClick={() => {
+                                    setMode('user');
+                                    setError('');
+                                    setUsername('');
+                                    setPassword('');
+                                }}
                                 className="w-full group relative flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-primary/50 transition-all duration-300"
                             >
                                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -56,7 +82,12 @@ const Login = () => {
                             </button>
 
                             <button
-                                onClick={() => setMode('admin')}
+                                onClick={() => {
+                                    setMode('admin');
+                                    setError('');
+                                    setUsername('');
+                                    setPassword('');
+                                }}
                                 className="w-full group relative flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-purple/50 transition-all duration-300"
                             >
                                 <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -72,7 +103,12 @@ const Login = () => {
                     ) : (
                         <div className="p-8">
                             <button
-                                onClick={() => setMode(null)}
+                                onClick={() => {
+                                    setMode(null);
+                                    setError('');
+                                    setUsername('');
+                                    setPassword('');
+                                }}
                                 className="text-sm text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"
                             >
                                 ← Back to modes
@@ -110,6 +146,15 @@ const Login = () => {
                                         />
                                     </div>
                                 </div>
+
+                                {error && (
+                                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+                                        <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                        <span>{error}</span>
+                                    </div>
+                                )}
 
                                 <button
                                     type="submit"
